@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db-gps:
+    image: postgres:15
+    container_name: database_gps_dev
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password_rahasia
+      POSTGRES_DB: gps_tracking
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d gps_tracking"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-service:
+    build: ./backend
+    container_name: gps_backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      db-gps:
+        condition: service_healthy
+
+  web-nginx:
+    image: nginx:alpine
+    container_name: gps_nginx
+    ports:
+      - "80:80"
+    volumes:
+      # Masukkan file HTML frontend ke dalam Nginx
+      - ./frontend:/usr/share/nginx/html
+      # Masukkan konfigurasi Nginx kita ke dalam container
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend-service

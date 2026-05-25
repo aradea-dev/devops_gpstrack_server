@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time GPS Tracker Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 200px;
+            padding-top: 10px;
+            background-color: #f4f6f9;
+        }
+        h1 {
+            color: #333;
+        }
+        #status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .connecting { background-color: #ffeeba; color: #856404; }
+        .connected { background-color: #d4edda; color: #155724; }
+        #map { 
+            height: 600px; 
+            width: 100%; 
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>GPS Monitoring: <span id="status" class="connecting">Connecting...</span></h1>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Inisialisasi peta awal terpusat di Jakarta (Monas)
+        const defaultLocation = [-6.175392, 106.827153];
+        const map = L.map('map').setView(defaultLocation, 14);
+        
+        // 2. Tambahkan lapisan peta jalan dari OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Tambahkan penanda objek (Marker) di peta
+        const marker = L.marker(defaultLocation).addTo(map)
+            .bindPopup('<b>Perangkat GPS</b><br>Menunggu data lokasi...').openPopup();
+
+        // 4. Buka Jaringan WebSocket Dinamis (Mengikuti alamat browser)
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const ws = new WebSocket(wsProtocol + window.location.host + '/ws');
+
+        // Saat browser berhasil tersambung ke Server Node.js
+        ws.onopen = () => {
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = "Connected (Live)";
+            statusEl.className = "connected";
+        };
+
+        // Saat menerima kiriman data GPS real-time dari Server Node.js
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                const newPos = [parseFloat(data.lat), parseFloat(data.lon)];
+                
+                // Geser posisi penanda (marker) di peta
+                marker.setLatLng(newPos);
+                
+                // Perbarui teks info saat marker diklik
+                marker.setPopupContent(`<b>Device:</b> ${data.device_id}<br><b>Speed:</b> ${data.speed} km/h`);
+                
+                // Gerakkan kamera peta agar otomatis mengikuti koordinat baru tersebut
+                map.panTo(newPos);
+                
+                console.log("📍 Map updated to:", newPos);
+            } catch (err) {
+                console.error("Error parsing WebSocket data:", err);
+            }
+        };
+
+        ws.onclose = () => {
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = "Disconnected";
+            statusEl.className = "connecting";
+        };
+    </script>
+</body>
+</html>
