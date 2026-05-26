@@ -12,11 +12,11 @@ const { Pool } = require('pg');
 
 // 1. KONEKSI DATABASE (MENGGUNAKAN POOL)
 const pool = new Pool({
-    user: 'admin',
-    host: 'db-gps', // Nama service di Docker Compose
-    database: 'gps_tracking',
-    password: 'password_rahasia',
-    port: 5432,
+    user: process.env.DB_USER || 'admin',
+    host: process.env.DB_HOST || 'db-gps', // Nama service di Docker Compose
+    database: process.env.DB_NAME || 'gps_tracking',
+    password: process.env.DB_PASSWORD || 'password_rahasia', // Ini hanya fallback aman untuk lokal
+    port: parseInt(process.env.DB_PORT || 5432),
     max: 20, // Batas maksimal koneksi simultan otomatis
 });
 
