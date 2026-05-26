@@ -12,32 +12,34 @@ The system architecture is split into two isolated environments mimicking a real
 
 
 [ Developer / WSL2 Ubuntu ]
-                          │
-                 git push / act push
-                          ▼
-       ┌──────────────────────────────────────┐
-       │     Local CI/CD Pipeline (`act`)     │
-       ├──────────────────────────────────────┤
-       │ 1. Code Syntax Linting               │
-       │ 2. Artifact Synchronization          │
-       │ 3. Smart Container Orchestration     │
-       └──────────────────┬───────────────────┘
-                          │ (Automated Deploy)
-                          ▼
-    ┌────────────────────────────────────────────┐
-    │     Isolated Production Host (Docker)      │
-    │                                            │
-    │  ┌───────────────┐     ┌────────────────┐  │
-    │  │  Nginx Proxy  │────>│  Node.js App   │  │
-    │  │ (Local HTTPS) │     │ (Smart Rebuild)│  │
-    │  └───────────────┘     └───────┬────────┘  │
-    │                                │           │
-    │                                ▼           │
-    │                        ┌────────────────┐  │
-    │                        │ PostgreSQL DB  │  │
-    │                        └────────────────└  │
-    └────────────────────────────────────────────┘
+```mermaid
+graph TD
+    %% Styling %%
+    classDef dev fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff;
+    classDef pipe fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff;
+    classDef prod fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
+    classDef node fill:#16a34a,stroke:#14532d,stroke-width:2px,color:#fff;
 
+    subgraph ENV1 [Developer Space]
+        A["💻 Developer / WSL2 Ubuntu"]:::dev
+    end
+
+    subgraph ENV2 [GitOps Engine]
+        B["⚙️ Local CI/CD Pipeline (act) <br> 1. Code Syntax Linting <br> 2. Artifact Sync <br> 3. Container Orchestration"]:::pipe
+    end
+
+    subgraph ENV3 [Isolated Production Host - Docker]
+        C["🔒 Nginx Proxy (Local HTTPS)"]:::prod
+        D["🚀 Node.js App (Smart Rebuild)"]:::node
+        E["🐘 PostgreSQL DB"]:::prod
+    end
+
+    %% Connections %%
+    A -->|"git push / act push"| B
+    B -->|"Automated Deploy"| C
+    C --> D
+    D --> E
+```
 ### Key Technical Features:
 * **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (`https://gps-tracking.local`).
 * **DevSecOps Integration:** Static syntax code validation gating before actual server mutation.
