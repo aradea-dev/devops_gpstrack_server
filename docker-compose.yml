@@ -31,10 +31,13 @@ services:
     container_name: gps_nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       # Masukkan file HTML frontend ke dalam Nginx
       - ./frontend:/usr/share/nginx/html
       # Masukkan konfigurasi Nginx kita ke dalam container
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      # SSL
+      - ./certs:/etc/nginx/certs # <--- MAP FOLDER SERTIFIKAT KE SINI    
     depends_on:
       - backend-service

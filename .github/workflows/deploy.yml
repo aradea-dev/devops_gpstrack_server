@@ -1,0 +1,51 @@
+name: Local DevOps Deployment Pipeline
+
+# Pipeline berjalan setiap ada command 'push' ke branch main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-to-local-live:
+    runs-on: ubuntu-latest
+
+     # TAMBAHKAN KODE DI BAWAH INI (Sejajar dengan runs-on)
+    container:
+      image: catthehacker/ubuntu:act-latest
+      volumes:
+        - /opt/apps:/opt/apps
+        # - /var/run/docker.sock:/var/run/docker.sock
+    
+    steps:
+      # Langkah 1: Mengambil kode terbaru dari folder Dev Anda
+      - name: Checkout Code from Dev
+        uses: actions/checkout@v3
+
+    # Langkah 2: Simulasi Deploy ke folder Live (/opt/apps/...)
+      - name: Sync and Pull to Live Directory
+        run: |
+          echo "🚚 Memulai proses deployment lokal..."
+          
+          # 1. Buat foldernya DULU di dalam kontainer Docker biar tidak error
+          sudo mkdir -p /opt/apps/devops_gpstrack_server
+          
+          # 2. Salin kode dari folder dev ke folder live (di dalam kontainer)
+          sudo cp -r $GITHUB_WORKSPACE/. /opt/apps/devops_gpstrack_server/
+
+          # 3. Pindah ke folder live
+          cd /opt/apps/devops_gpstrack_server
+
+          echo "✅ Kode berhasil disalin ke folder Live di dalam kontainer!"
+
+      # Langkah 3: Restart Service (Nginx / Docker) agar SSL & aplikasi diperbarui
+      - name: Restart Docker Containers
+        run: |
+          cd /opt/apps/devops_gpstrack_server
+          echo "🛑 Menghentikan dan menghapus kontainer lama (jika ada)..."
+          # Tambahkan flag --remove-orphans agar benar-benar bersih
+          docker compose down --remove-orphans
+          
+          echo "🚀 Menyalakan ulang kontainer baru..."
+          # Tambahkan flag --build untuk memastikan kode terbaru kamu ikut di-build ulang
+          docker compose up -d --build
+          echo "🔄 Services restarted successfully!"
