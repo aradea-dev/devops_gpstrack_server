@@ -1,84 +1,46 @@
 # Local GitOps Engine: Zero-Cost Enterprise CI/CD Simulation
 
-A production-grade, local DevOps infrastructure that replicates enterprise GitOps workflows inside a single machine. This project demonstrates how to build a highly secure, automated, and zero-downtime deployment pipeline for a GPS Tracking microservice without incurring cloud provider costs, leveraging **WSL2**, **Docker**, **Nginx**, and **GitHub Actions (`act`)**.
-
----
+A production-grade, local DevOps infrastructure that replicates enterprise CI/CD workflows inside a single machine. This project demonstrates how to build a highly secure, automated, and zero-downtime deployment pipeline for a GPS Tracking microservice without incurring cloud provider costs, leveraging WSL2, Docker, Nginx, and GitHub Actions powered by `act`.
 
 ## 🏗️ Architecture Overview
 
-The system architecture is split into two isolated environments mimicking a real-world Cloud deployment:
-1. **Development/Runner Node (WSL2 Ubuntu):** Acts as the Developer's machine and the CI/CD Runner executing local automated pipelines via `act`.
-2. **Production/Staging Host (Windows/Docker Desktop):** Acts as the isolated Live Virtual Private Server (VPS) where services are securely provisioned.
+The system architecture is split into two isolated environments mimicking a real-world cloud deployment:
+* **Development/Runner Node (WSL2 Ubuntu):** Acts as the developer's machine and the CI/CD runner executing local automated pipelines via `act`.
+* **Production/Staging Host (Windows/Docker Desktop):** Acts as the isolated Live Virtual Private Server (VPS) where services are securely provisioned.
 
+![Architecture Diagram](path-to-your-diagram.png) *(Note: Insert your diagram link here)*
 
-[ Developer / WSL2 Ubuntu ]
-```mermaid
-graph TD
-    %% Styling %%
-    classDef dev fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff;
-    classDef pipe fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff;
-    classDef prod fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
-    classDef node fill:#16a34a,stroke:#14532d,stroke-width:2px,color:#fff;
-
-    subgraph ENV1 [Developer Space]
-        A["💻 Developer / WSL2 Ubuntu"]:::dev
-    end
-
-    subgraph ENV2 [GitOps Engine]
-        B["⚙️ Local CI/CD Pipeline (act) <br> 1. Code Syntax Linting <br> 2. Artifact Sync <br> 3. Container Orchestration"]:::pipe
-    end
-
-    subgraph ENV3 [Isolated Production Host - Docker]
-        C["🔒 Nginx Proxy (Local HTTPS)"]:::prod
-        D["🚀 Node.js App (Smart Rebuild)"]:::node
-        E["🐘 PostgreSQL DB"]:::prod
-    end
-
-    %% Connections %%
-    A -->|"git push / act push"| B
-    B -->|"Automated Deploy"| C
-    C --> D
-    D --> E
-```
 ### Key Technical Features:
-* **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (`https://gps-tracking.local`).
-* **DevSecOps Integration:** Static syntax code validation gating before actual server mutation.
+* **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (https://gps-tracking.local).
+* **DevSecOps Integration:** Static syntax code validation gating before actual server deployments.
 * **Twelve-Factor App Configuration:** Decoupled database credentials using strictly isolated environment variables (`.env`).
-* **Zero-Downtime Deployment:** Rolling-update mechanism ensuring high availability during server updates.
-
----
+* **High Availability Deployment:** Rolling-update mechanisms to ensure minimal disruption during server updates.
 
 ## 🛠️ Tech Stack & Tools
 
 * **Orchestration & Containerization:** Docker, Docker Compose
-* **CI/CD / GitOps Automation:** GitHub Actions, `act` (Local Workflow Engine)
+* **CI/CD Automation:** GitHub Actions, `act` (Local Workflow Engine)
 * **Web Server & Security:** Nginx, `mkcert` (Local CA/TLS)
 * **Backend & Database:** Node.js (WebSockets), PostgreSQL 15
 * **Environment:** WSL2 (Ubuntu 22.04 LTS), Windows 11
 
----
-
-## 🚀 The GitOps Pipeline (`deploy.yml`)
+## 🚀 The CI/CD Pipeline (`deploy.yml`)
 
 The deployment process is entirely automated and declarative. Upon triggering, the pipeline executes the following atomic steps:
-
 1. **Checkout:** Extracts the latest codebase from the development repository.
 2. **Code Guard (CI):** Validates Node.js syntax to prevent broken builds from reaching the live staging environment.
 3. **Artifact Sync:** Copies validated production assets to the isolated host application directory (`/opt/apps/`).
 4. **Smart Restart (CD):** Rebuilds and rolls over the backend microservice seamlessly using container isolation flags.
 
----
-
 ## 💡 Engineering Highlights & Problem Solving
 
 During the development of this infrastructure, several enterprise-level challenges were identified and mitigated:
 
-### 1. Achieving Zero-Downtime Deployment (No More 502 Bad Gateway)
-* **Challenge:** Traditional deployment methods like `docker compose down && docker compose up` cause service interruption (downtime), which is unacceptable in production environments.
-* **Solution:** Refactored the CD step to target the backend microservice exclusively using the `--no-deps` and `--build` flags:
-  ```bash
+### 1. Achieving Zero-Downtime Deployment (Mitigating 502 Bad Gateway)
+* **Challenge:** Traditional deployment methods like `docker compose down && docker compose up` cause service interruption (downtime), which is unacceptable for production environments.
+* **Solution:** Optimized the CD step to isolate and rebuild the microservice using the `--no-deps` and `--build` flags. This ensures the backend service is updated in-place without restarting dependent infrastructure (like the PostgreSQL database), significantly minimizing deployment gaps:
+```bash
   docker compose up -d --no-deps --build backend-service
-
 ============================================================================================================
 
 This forces Docker to build the new image in the background and replace the app container instantly, keeping Nginx and the Database untouched—achieving seamless high availability.
