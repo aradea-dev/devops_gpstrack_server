@@ -23,13 +23,13 @@ graph TB
         Step1 --> Step2 --> Step3
     end
 
-    subgraph Host ["Isolated Production Host (Docker)"]
-        Nginx["Nginx Proxy <br> (Local HTTPS)"]
-        App["Node.js App <br> (Smart Rebuild)"]
-        DB[("PostgreSQL DB")]
+    subgraph Host ["Isolated Production Host (Docker Engine)"]
+        Nginx["Nginx Proxy <br> (Upstream Health Monitor)"]
+        App["Node.js App <br> (Liveness Check + Auto-Restart)"]
+        DB[("PostgreSQL DB <br> (Readiness Guard)")]
         
-        Nginx --> App
-        App --> DB
+        Nginx -->|Passive Failover Policy| App
+        App -->|Depends on Healthy State| DB
     end
 
     %% Flows / Connections
@@ -43,6 +43,7 @@ graph TB
 ```
 
 ### Key Technical Features:
+* **Dual-Layer Infrastructure Resilience:** Combines **Docker Daemon Auto-Restart** (internal liveness check) and **Nginx Upstream Passive Health Monitoring** (external routing failover) to guarantee zero-downtime availability for continuous IoT telemetry streams.
 * **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (https://gps-tracking.local).
 * **DevSecOps Integration:** Static syntax code validation gating before actual server deployments.
 * **Twelve-Factor App Configuration:** Decoupled database credentials using strictly isolated environment variables (`.env`).
@@ -67,12 +68,25 @@ The deployment process is entirely automated and declarative. Upon triggering, t
 ## 💡 Engineering Highlights & Problem Solving
 
 During the development of this infrastructure, several enterprise-level challenges were identified and mitigated:
+### 1. Mitigating "Silent Container Freezes" via Custom HTTP 426 Healthcheck Protocol
+* **Challenge:** After implementing Nginx reverse-proxying, standard Docker health check probes (`curl -f`) failed continuously because the backend server enforces Node.js WebSocket protocol upgrades, throwing an expected `HTTP 426 Upgrade Required` status code. This caused the Docker daemon to falsely mark a perfectly healthy container as `unhealthy` and trigger an infinite restart loop.
+* **Solution:** Designed an advanced shell-scripted Docker probe using a dynamic status variable extractor. The probe intercepts the response code and treats both `200 OK` (API readiness) and `426 Upgrade Required` (WebSocket liveness) as successful execution states (`Exit Code 0`), paired with native Nginx upstream isolation policies:
 
-### 1. Achieving Zero-Downtime Deployment (Mitigating 502 Bad Gateway)
+```yaml
+# Inside docker-compose.yml
+healthcheck:
+  test: ["CMD", "sh", "-c", "Status=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/); [ $$Status -eq 200 ] || [ $$Status -eq 426 ]"]
+  interval: 5s
+  timeout: 3s
+  retries: 3
+  start_period: 5s
+```
+### 2. Achieving Zero-Downtime Deployment (Mitigating 502 Bad Gateway)
 * **Challenge:** Traditional deployment methods like `docker compose down && docker compose up` cause service interruption (downtime), which is unacceptable for production environments.
 * **Solution:** Optimized the CD step to isolate and rebuild the microservice using the `--no-deps` and `--build` flags. This ensures the backend service is updated in-place without restarting dependent infrastructure (like the PostgreSQL database), significantly minimizing deployment gaps:
 ```bash
   docker compose up -d --no-deps --build backend-service
+```
 ============================================================================================================
 
 This forces Docker to build the new image in the background and replace the app container instantly, keeping Nginx and the Database untouched—achieving seamless high availability.
@@ -95,12 +109,20 @@ Docker Desktop with WSL2 integration enabled.
 
 act CLI installed on WSL2.
 
-mkcert configured on the host machine.
+### Prerequisites
+* WSL2 Ubuntu installed.
+* Docker Desktop with WSL2 integration enabled.
+* `act` CLI installed on WSL2.
+* `mkcert` configured on the host machine.
 
-Setup Environment
-Create a .env file in the root directory:
+### Setup Certificates & Environment
+1. Generate trusted local SSL certificates inside your project root:
+   ```bash
+   mkdir -p nginx/certs
+   mkcert -cert-file nginx/certs/gps-tracking.local.pem -key-file nginx/certs/gps-tracking.local-key.pem gps-tracking.local
 
-Ini, TOML
+2. Create a .env file in the root directory:
+TOML
 DB_USER=admin
 DB_HOST=db-gps
 DB_NAME=gps_tracking
