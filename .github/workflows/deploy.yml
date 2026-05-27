@@ -44,22 +44,22 @@ jobs:
           echo "🧐 Memeriksa status infrastruktur saat ini..."
 
           # Cek apakah container Nginx (gps_nginx) saat ini sedang berjalan aktif
-          NGINX_STATUS=$(docker ps -q -f name=gps_nginx)
+          NGINX_STATUS=$(sudo docker ps -q -f name=gps_nginx)
 
           if [ -z "$NGINX_STATUS" ]; then
             echo "⚠️ Deteksi: Seluruh service sedang mati atau belum lengkap!"
             echo "🚀 Menjalankan deployment penuh dari awal (DB, Backend, Nginx)..."
-            docker compose up -d --build
+            sudo docker compose up -d --build
             
             echo "🧹 Membersihkan sisa image lama yang tidak terpakai..."
-            docker image prune -f
+            sudo docker image prune -f
             echo "🔄 Cold-Start Deployment Sukses! Seluruh sistem telah menyala."
           else
             echo "🔄 Deteksi: Nginx Proxy sedang aktif berjalan melayani user."
             echo "⚡ Memulai proses Smart Restart (Hot-Swap) HANYA untuk Backend..."
-            docker compose up -d --no-deps --build backend-service
+            sudo docker compose up -d --no-deps --build backend-service
             
             echo "🧹 Membersihkan sisa image lama yang tidak terpakai..."
-            docker image prune -f
+            sudo docker image prune -f
             echo "🔄 Zero-Downtime Deployment sukses! Backend berhasil diperbarui tanpa downtime."
           fi
