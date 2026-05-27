@@ -36,10 +36,11 @@ graph TB
     Dev -->|act workflow trigger| Pipeline
     Pipeline -->|Automated Deployment| Host
 
-    %% Styling for better readability
+    %% Styling
     style Dev fill:#f9f6ff,stroke:#6f42c1,stroke-width:2px
     style Pipeline fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
     style Host fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
+```
 
 ### Key Technical Features:
 * **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (https://gps-tracking.local).
