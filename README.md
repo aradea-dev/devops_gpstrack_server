@@ -8,7 +8,38 @@ The system architecture is split into two isolated environments mimicking a real
 * **Development/Runner Node (WSL2 Ubuntu):** Acts as the developer's machine and the CI/CD runner executing local automated pipelines via `act`.
 * **Production/Staging Host (Windows/Docker Desktop):** Acts as the isolated Live Virtual Private Server (VPS) where services are securely provisioned.
 
-![Architecture Diagram](path-to-your-diagram.png) *(Note: Insert your diagram link here)*
+![Architecture Diagram](path-to-your-diagram.png)
+
+```mermaid
+graph TB
+    %% Nodes
+    Dev["Developer / WSL2 Ubuntu"]
+    
+    subgraph Pipeline ["Local CI/CD Pipeline (act)"]
+        Step1["1. Code Syntax Validation (Linting)"]
+        Step2["2. Artifact Synchronization"]
+        Step3["3. Smart Container Orchestration"]
+        
+        Step1 --> Step2 --> Step3
+    end
+
+    subgraph Host ["Isolated Production Host (Docker)"]
+        Nginx["Nginx Proxy <br> (Local HTTPS)"]
+        App["Node.js App <br> (Smart Rebuild)"]
+        DB[("PostgreSQL DB")]
+        
+        Nginx --> App
+        App --> DB
+    end
+
+    %% Flows / Connections
+    Dev -->|act workflow trigger| Pipeline
+    Pipeline -->|Automated Deployment| Host
+
+    %% Styling for better readability
+    style Dev fill:#f9f6ff,stroke:#6f42c1,stroke-width:2px
+    style Pipeline fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
+    style Host fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
 
 ### Key Technical Features:
 * **Reverse Proxy & SSL/TLS Hardening:** Managed by Nginx with local trusted certificates via `mkcert` (https://gps-tracking.local).
