@@ -122,6 +122,7 @@ act CLI installed on WSL2.
    mkcert -cert-file nginx/certs/gps-tracking.local.pem -key-file nginx/certs/gps-tracking.local-key.pem gps-tracking.local
 
 2. Create a .env file in the root directory:
+TOML
 DB_USER=admin
 DB_HOST=db-gps
 DB_NAME=gps_tracking
