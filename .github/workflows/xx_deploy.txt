@@ -1,3 +1,9 @@
+# =========================================================================
+# NAME: Local DevOps Deployment Pipeline
+# DESCRIPTION: Pipeline GitOps lokal menggunakan 'act' dan GitHub Actions.
+#              Mencakup Security Scanning & Zero-Downtime Deployment.
+# =========================================================================
+
 name: Local DevOps Deployment Pipeline
 
 # Pemicu (Trigger): Pipeline berjalan otomatis setiap ada 'git push' ke branch main
@@ -16,12 +22,19 @@ jobs:
         # Mounting folder tujuan agar hasil deploy tersimpan permanen di host lokal (/opt/apps)
         - /opt/apps:/opt/apps
         # Share Docker Socket agar runner bisa mengendalikan Docker milik mesin host (Docker-in-Docker)
-        #- /var/run/docker.sock:/var/run/docker.sock 
+        #- /var/run/docker.sock:/var/run/docker.sock
 
     steps:
       # LANGKAH 1: Mengunduh kode terbaru dari repositori kerja ke dalam runner
       - name: Checkout Code from Dev
         uses: actions/checkout@v3
+
+      # LANGKAH 2: EKSPERIMEN B - DevSecOps Configuration Vulnerability Scanning
+      #- name: Run Trivy Security Scan (CLI Mode)
+        #run: |
+          #echo "🛡️ Memulai pemindaian keamanan konfigurasi..."
+          #docker run --rm -v ${{ github.workspace }}:/apps aquasecurity/trivy:latest config /apps
+          #echo "✅ Pemindaian selesai!"
           
       - name: Run Code Syntax Check
         run: |
@@ -36,30 +49,3 @@ jobs:
           sudo mkdir -p /opt/apps/devops_gpstrack_server
           sudo cp -r $GITHUB_WORKSPACE/. /opt/apps/devops_gpstrack_server/
           echo "✅ Kode berhasil disalin ke folder Live di dalam kontainer!"
-
-      # LANGKAH 4: EKSPERIMEN A - Zero-Downtime Deployment (Smart Restart Kondisional)
-      - name: Restart Docker Containers
-        run: |
-          cd /opt/apps/devops_gpstrack_server
-          echo "🧐 Memeriksa status infrastruktur saat ini..."
-
-          # Cek apakah container Nginx (gps_nginx) saat ini sedang berjalan aktif
-          NGINX_STATUS=$(docker ps -q -f name=gps_nginx)
-
-          if [ -z "$NGINX_STATUS" ]; then
-            echo "⚠️ Deteksi: Seluruh service sedang mati atau belum lengkap!"
-            echo "🚀 Menjalankan deployment penuh dari awal (DB, Backend, Nginx)..."
-            docker compose up -d --build
-            
-            echo "🧹 Membersihkan sisa image lama yang tidak terpakai..."
-            docker image prune -f
-            echo "🔄 Cold-Start Deployment Sukses! Seluruh sistem telah menyala."
-          else
-            echo "🔄 Deteksi: Nginx Proxy sedang aktif berjalan melayani user."
-            echo "⚡ Memulai proses Smart Restart (Hot-Swap) HANYA untuk Backend..."
-            docker compose up -d --no-deps --build backend-service
-            
-            echo "🧹 Membersihkan sisa image lama yang tidak terpakai..."
-            docker image prune -f
-            echo "🔄 Zero-Downtime Deployment sukses! Backend berhasil diperbarui tanpa downtime."
-          fi

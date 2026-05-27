@@ -1,6 +1,9 @@
 # 1. Gunakan base image Node.js versi LTS yang ringan
 FROM node:20-alpine
 
+# [TAMBAHAN] Install curl ke dalam Alpine Linux tanpa menyimpan cache apk
+RUN apk add --no-cache curl
+
 # 2. Tentukan folder kerja di dalam container
 WORKDIR /app
 

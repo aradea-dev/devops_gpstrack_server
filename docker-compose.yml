@@ -20,6 +20,7 @@ services:
   backend-service:
     build: ./backend
     container_name: gps_backend
+    restart: always # <--- TAMBAHKAN BARIS INI (Sangat Penting untuk Auto-Restart)
     ports:
       - "3000:3000"
     environment:
@@ -28,6 +29,18 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_PORT=${DB_PORT}
+
+    # ======= check backend healty =======
+    healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      #test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "sh", "-c", "Status=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/); [ $$Status -eq 200 ] || [ $$Status -eq 426 ]"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    # ==================================
+
     depends_on:
       db-gps:
         condition: service_healthy
@@ -47,3 +60,5 @@ services:
       - ./certs:/etc/nginx/certs # <--- MAP FOLDER SERTIFIKAT KE SINI    
     depends_on:
       - backend-service
+      #backend-service:
+        #condition: "service_healty" # check healty
