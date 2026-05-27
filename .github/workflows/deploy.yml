@@ -16,7 +16,7 @@ jobs:
         # Mounting folder tujuan agar hasil deploy tersimpan permanen di host lokal (/opt/apps)
         - /opt/apps:/opt/apps
         # Share Docker Socket agar runner bisa mengendalikan Docker milik mesin host (Docker-in-Docker)
-        #- /var/run/docker.sock:/var/run/docker.sock 
+        - /var/run/docker.sock:/var/run/docker.sock
 
     steps:
       # LANGKAH 1: Mengunduh kode terbaru dari repositori kerja ke dalam runner
