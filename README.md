@@ -80,12 +80,13 @@ healthcheck:
   timeout: 3s
   retries: 3
   start_period: 5s
-
+```
 ### 2. Achieving Zero-Downtime Deployment (Mitigating 502 Bad Gateway)
 * **Challenge:** Traditional deployment methods like `docker compose down && docker compose up` cause service interruption (downtime), which is unacceptable for production environments.
 * **Solution:** Optimized the CD step to isolate and rebuild the microservice using the `--no-deps` and `--build` flags. This ensures the backend service is updated in-place without restarting dependent infrastructure (like the PostgreSQL database), significantly minimizing deployment gaps:
 ```bash
   docker compose up -d --no-deps --build backend-service
+```
 ============================================================================================================
 
 This forces Docker to build the new image in the background and replace the app container instantly, keeping Nginx and the Database untouched—achieving seamless high availability.
