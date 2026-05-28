@@ -17,10 +17,12 @@ graph TB
     
     subgraph Pipeline ["Local CI/CD Pipeline (act)"]
         Step1["1. Code Syntax Validation (Linting)"]
-        Step2["2. Artifact Synchronization"]
-        Step3["3. Smart Container Orchestration"]
-        
-        Step1 --> Step2 --> Step3
+        StepQA["2. QA Automation Gate (Playwright)"]
+	Step2["3. Artifact Synchronization"]
+        Step3["4. Smart Container Orchestration"]
+        Step1 --> StepQA
+	StepQA --> |Pass| Step2
+	Step2 --> Step3
     end
 
     subgraph Host ["Isolated Production Host (Docker Engine)"]
@@ -38,8 +40,33 @@ graph TB
 
     %% Styling
     style Dev fill:#f9f6ff,stroke:#6f42c1,stroke-width:2px
+    style StepQA fill:#d4edda,stroke:#28a745,stroke-width:3px
     style Pipeline fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
     style Host fill:#f6f8fa,stroke:#d1d5da,stroke-width:2px
+```
+
+## 🤖 Advanced End-to-End (E2E) Automation Testing
+
+To guarantee that our real-time tracking data pipeline is production-ready, this project features an E2E testing framework powered by **Playwright**. Unlike basic page-load checks, our test suite monitors **real-time data mutations** across multiple simulated environments.
+
+### 📊 Automated Test Project Matrix
+One command executes a parallel testing matrix to ensure the UI and stream integrity:
+
+| Test Project | Focus | Environment Simulation |
+| :--- | :--- | :--- |
+| **Desktop_Chrome** | Core Workflow | Standard Desktop Viewport |
+| **Mobile_iPhone** | Responsive UX | Mobile Browser (`iPhone 14`) |
+| **Network_Slow_3G**| Resilience | Restricted Bandwidth (50kbps, 500ms latency) |
+
+> **Killer Feature:** The `Network_Slow_3G` project ensures that even under severe signal degradation, the frontend successfully captures and displays incoming GPS telemetry without crashing.
+
+### 🚀 Running the QA Matrix
+```bash
+# Execute all parallel tests
+npx playwright test
+
+# View interactive HTML report
+npx playwright show-report
 ```
 
 ### Key Technical Features:
@@ -52,6 +79,7 @@ graph TB
 ## 🛠️ Tech Stack & Tools
 
 * **Orchestration & Containerization:** Docker, Docker Compose
+* **QA Automation:** Playwright, Node.js Test Runner (E2E Testing)
 * **CI/CD Automation:** GitHub Actions, `act` (Local Workflow Engine)
 * **Web Server & Security:** Nginx, `mkcert` (Local CA/TLS)
 * **Backend & Database:** Node.js (WebSockets), PostgreSQL 15
